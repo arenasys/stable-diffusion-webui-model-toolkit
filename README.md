@@ -39,6 +39,8 @@ Hard way, build the model from components:
 ```
 
 ## Notes
+Some things that may be useful to know when manipulating models.
+### Useless Data
 With so many models being distributed in FP32 and with junk EMA data, I think a comparison is needed.
 
 Comparison between the 2.1gb model and the orginal 8.5gb model.
@@ -47,6 +49,12 @@ Shown is a comparison with `--no-half` enabled.
 ![](https://cdn.discordapp.com/attachments/973151736946622467/1060445743707603035/comparison.png)
 But which is FP16 and which is FP32?
 
-EMA data is also often left in, which is only stored to enable training to stop and start as needed without losing momentum.
+EMA data is also often left in, which is only stored to enable training to stop and start as needed without losing momentum. Interestingly, the EMA data is itself an independant and functional model, it can be extracted into its own ckpt and used.
 
-An interesting note is that the EMA data is itself an independant and functional model, it can be extracted into its own ckpt and used.
+### Merging
+The UNET somehow takes to merging quite well, but thats not the case for the VAE. Any merge between different VAE's will result in something broken.
+This is why the VAE in the AnythingV3 checkpoint produces horrible outputs, and why people have resorted to distributing and loading the VAE seperatly. 
+
+But replacing the VAE is not a perfect solution. UNETs operate inside the latent space produced by the VAE. We dont know the effect merging has on the latent space the UNET is expecting, theres no reason it would interpolate with the weights. Luckily VAEs produce very similar latent spaces (by design), so in practice using one of the original VAEs will do a decent job.
+
+The effect of merging on CLIP is currently unknown to me, but evidentily its not so devistating.
