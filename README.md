@@ -41,8 +41,8 @@ Hard way, build the model from components:
 ## Notes
 With so many models being distributed in FP32 and with junk EMA data, I think a comparison is needed.
 
-Comparison between the 2.1 gb model and the orginal 8.5 gb model.
-**By default the webui will cast all loaded models to FP16**. Without `--no-half` the models will exactly identical.
+Comparison between the 2.1gb model and the orginal 8.5gb model.
+**By default the webui will cast all loaded models to FP16**. Without `--no-half` the models will be exactly identical.
 Shown is a comparison with `--no-half` enabled.
 ![](https://cdn.discordapp.com/attachments/973151736946622467/1060445743707603035/comparison.png)
 But which is FP16 and which is FP32?
