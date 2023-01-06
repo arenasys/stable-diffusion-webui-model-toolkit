@@ -51,7 +51,10 @@ Shown is a comparison with `--no-half` enabled.
 ![](https://cdn.discordapp.com/attachments/973151736946622467/1060445743707603035/comparison.png)
 But which is FP16 and which is FP32?
 
-EMA data is also often left in, which is only stored to enable training to stop and start as needed without losing momentum. Interestingly, the EMA data is itself an independant and functional model, it can be extracted into its own ckpt and used.
+EMA data is also often left in, which is only stored to enable training to stop and start as needed without losing momentum.
+
+Interestingly, the EMA data is itself an independant and functional model, it can be extracted into its own ckpt and used. You can export the "UNET-v1-EMA" component to extract the EMA unet, then replace the regular UNET with it. For example the EMA UNET vs normal UNET in AnythingV3.
+![](https://cdn.discordapp.com/attachments/973151736946622467/1060767681692827718/ema.png)
 
 ### Merging
 The UNET somehow takes to merging quite well, but thats not the case for the VAE. Any merge between different VAE's will result in something broken.
