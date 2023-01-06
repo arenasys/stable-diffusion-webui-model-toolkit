@@ -19,6 +19,7 @@ VAE_PATH = os.path.join(ROOT_PATH, "VAE")
 MODEL_EXT = [".ckpt", ".pt", ".safetensors"]
 COMPONENT_EXT = {
     "UNET-v1": ".unet.pt", 
+    "EMA-UNET-v1": ".unet.pt", 
     "UNET-v2": ".unet-v2.pt", 
     "UNET-v2-Depth": ".unet-v2-d.pt", 
     "VAE-v1": ".vae.pt", 
@@ -122,7 +123,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
     out = [f"Model is **{get_size(d.z_total)}**."]
 
     if len(d.a_potential) > 1:
-        out += [f"**Multiple model types identified: {', '.join(d.a_potential)}.**"]
+        out += [f"Multiple model types identified: **{', '.join(d.a_potential)}**."]
         out += [f"Model type **{d.a_type}** will be used."]
     else:
         out += [f"Model type identified as **{d.a_type}**."]
@@ -388,6 +389,7 @@ def do_load(source, precision):
             error = f"Cannot find {source}!"
         else:
             model, _ = load(filename)
+            fix_model(model, fix_clip=False)
             loaded = do_analysis(model)
             loaded.filename = filename
     if loaded:
@@ -424,9 +426,9 @@ def do_select(drop_arch, drop_class, drop_comp):
     if not loaded:
         return [gr.update(choices=[], value="") for _ in range(3)] + [gr.update(value="")]
 
-    arch_list = sorted(loaded.a_found.keys())
+    arch_list = sorted(loaded.a_potential)
     if not drop_arch in arch_list:
-        drop_arch = arch_list[0]
+        drop_arch = loaded.a_type
 
     arch = loaded.a_found[drop_arch]
 
@@ -536,15 +538,16 @@ def do_export(drop_arch, drop_class, drop_comp, export_name):
             prefix = COMPONENTS[comp]["prefix"]
 
             extract_component(model, comp, prefixed)
-
-            print(len(model), len(loaded.model))
             
             for k in model:
                 kk = prefix + k if prefixed else k
                 model[k] = loaded.model[kk]
 
+            if "EMA" in comp:
+                fix_ema(model)
+
             folder = COMPONENT_PATH
-            if "VAE" in loaded.a_type:
+            if "VAE" in comp:
                 folder = VAE_PATH
 
             filename = os.path.join(folder, export_name)
@@ -566,6 +569,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
     if not error:
         filename = find_source(import_drop)
         model, _ = load(filename)
+        fix_model(model, fix_clip=False)
         found, _ = inspect_model(model, all=True)
         if not found or not model:
             error = "### ERROR: Imported model could not be identified!\n----"
@@ -592,10 +596,11 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
     names = [gr.update(), gr.update()]
 
     if not error:
-        # delete the other conflicitng components
+        # delete the other conflicting components
         delete_class(loaded.model, drop_arch, drop_class)
-    
-        # replace the component
+
+        extract_component(model, choosen)
+
         replace_component(loaded.model, drop_arch, model, choosen)
 
         # update analysis

@@ -31,6 +31,11 @@ COMPONENTS = {
         "source": "UNET-v1-SD.txt",
         "prefix": "model.diffusion_model."
     },
+    "UNET-v1-EMA": {
+        "keys": {},
+        "source": "UNET-v1-EMA.txt",
+        "prefix": "model_ema.diffusion_model"
+    },
     "UNET-v1-Inpainting": {
         "keys": {},
         "source": "UNET-v1-Inpainting.txt",
@@ -80,6 +85,7 @@ COMPONENTS = {
 
 COMPONENT_CLASS = {
     "UNET-v1-SD": "UNET-v1",
+    "UNET-v1-EMA": "EMA-UNET-v1",
     "UNET-v1-Inpainting": "UNET-v1",
     "UNET-v2-SD": "UNET-v2",
     "UNET-v2-Depth": "UNET-v2-Depth",
@@ -170,6 +176,12 @@ ARCHITECTURES = {
         "required": [],
         "prefixed": True
     },
+    "EMA-v1": {
+        "classes": ["EMA-UNET-v1"],
+        "optional": OPTIONAL,
+        "required": [],
+        "prefixed": True
+    }
 }
 
 def tensor_size(t):
@@ -210,7 +222,6 @@ def get_keys_size(model, keys):
         if k in model:
             z += tensor_size(model[k])
     return z
-
 
 class FakeTensor():
     def __init__(self, shape):
@@ -362,7 +373,7 @@ def get_allowed_keys(arch, allowed_classes=None):
                     allowed.update(comp_keys)
     return allowed
 
-def fix_model(model):
+def fix_model(model, fix_clip=False):
     # fix NAI nonsense
     nai_keys = {
         'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
@@ -382,9 +393,31 @@ def fix_model(model):
     # fix merging nonsense
     i = "cond_stage_model.transformer.text_model.embeddings.position_ids"
     if i in model:
-        model[i] = model[i].to(torch.int64)
+        if fix_clip:
+            # actually fix the ids
+            model[i] = torch.Tensor([list(range(77))]).to(torch.int64)
+        else:
+            # ensure fp16 looks the same as fp32
+            model[i] = model[i].to(torch.int64)
 
     return renamed
+
+def fix_ema(model):
+    # turns UNET-v1-EMA into UNET-v1-SD
+    # but only when in component form (unprefixed)
+
+    # example keys
+    # EMA = model_ema.diffusion_modeloutput_blocks91transformer_blocks0norm3weight
+    # SD  = model.diffusion_model.output_blocks9.1.transformer_blocks.0.norm3.weight
+
+    normal = COMPONENTS["UNET-v1-SD"]["keys"]
+    for k, _ in normal:
+        kk = k.replace(".", "")
+        if kk in model:
+            model[k] = model[kk]
+            del model[kk]
+        else:
+            print(kk)
 
 def compute_metric(model, arch=None):
     def tensor_metric(t):
@@ -462,8 +495,6 @@ def load(file):
                     metadata[k] = model[k]
             model = model['state_dict']
 
-    fix_model(model)
-
     return model, metadata
 
 def save(model, metadata, file):
@@ -497,7 +528,7 @@ def extract_component(model, component, prefixed=None):
         allowed = allowed.union(COMPONENTS[component]["keys"])
     if prefixed != False:
         allowed = allowed.union(get_prefixed_keys(component))
-    
+
     for k in list(model.keys()):
         z = tensor_shape(model[k])
         if (k, z) in allowed:
@@ -519,7 +550,6 @@ def replace_component(target, target_arch, source, source_component):
     # find out if we should prefix the component
     is_prefixed = ARCHITECTURES[target_arch]["prefixed"]
 
-    print(len(list(source.keys())), len(component_keys))
     for k in list(source.keys()):
         src_z = tensor_shape(source[k])
         src_k = k[len(prefix):] if k.startswith(prefix) else k
@@ -538,6 +568,7 @@ def delete_class(model, model_arch, component_class):
         for k in component_keys:
             if k in keys:
                 del model[k[0]]
+                keys.remove(k)
 
 def log(model, file):
     keys = []
@@ -548,3 +579,16 @@ def log(model, file):
     out = "\n".join(keys)
     with open(file, "w") as f:
         f.write(out)
+
+if __name__ == '__main__':
+    r = "/run/media/pul/ssd/stable-diffusion-webui/models/Stable-diffusion/Anything-V3.0.ckpt"
+
+    a, _ = load(r)
+
+    print(list(a.keys()))
+
+    load_components("components")
+
+    extract_component(a, "UNET-v1-EMA")
+
+    print(list(a.keys()))
