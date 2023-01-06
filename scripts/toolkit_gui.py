@@ -321,6 +321,8 @@ def get_lists():
             source_list += ["NEW " + a]
 
 def find_source(source):
+    if not source:
+        return None
     if os.sep in source:
         s = os.path.join(ROOT_PATH, source)
         if os.path.exists(s):
@@ -330,7 +332,7 @@ def find_source(source):
     else:
         paths = [MODEL_PATH, VAE_PATH, COMPONENT_PATH]
         for p in paths:
-            s = glob.glob(os.path.join(p, "**", source))
+            s = glob.glob(os.path.join(p, "**", "*" + source), recursive=True)
             if s:
                 return s[0]
         return None

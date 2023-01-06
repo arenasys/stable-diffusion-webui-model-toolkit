@@ -416,9 +416,6 @@ def fix_ema(model):
         if kk in model:
             model[k] = model[kk]
             del model[kk]
-        else:
-            print(kk)
-
 def compute_metric(model, arch=None):
     def tensor_metric(t):
         t = t.to(torch.float16).to(torch.float32)
@@ -581,7 +578,12 @@ def log(model, file):
         f.write(out)
 
 if __name__ == '__main__':
-    r = "/run/media/pul/ssd/stable-diffusion-webui/models/Stable-diffusion/Anything-V3.0.ckpt"
+    import glob 
+    r = "/run/media/pul/ssd/stable-diffusion-webui/models/Stable-diffusion/**/*fumo-800.ckpt"
+
+    print(glob.glob(r, recursive=True))
+
+    exit()
 
     a, _ = load(r)
 
