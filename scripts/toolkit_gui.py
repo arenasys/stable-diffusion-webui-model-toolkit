@@ -1,11 +1,7 @@
 import os
 import sys
 import gradio as gr
-import modules.extras
-import modules.ui
-import modules.sd_vae
-import modules.sd_models
-from modules import script_callbacks
+from modules import shared, script_callbacks
 import torch
 import glob
 
@@ -289,10 +285,10 @@ file_list = []
 loaded = None
 
 def get_models(dir):
-    ext = ["*" + e for e in MODEL_EXT]
+    ext = ["**" + os.sep + "*" + e for e in MODEL_EXT]
     files = []
     for e in ext:
-        files += glob.glob(os.path.join(dir, e))
+        files += glob.glob(dir + os.sep + e, recursive=True)
     return files
 
 def get_lists():
@@ -334,9 +330,9 @@ def find_source(source):
     else:
         paths = [MODEL_PATH, VAE_PATH, COMPONENT_PATH]
         for p in paths:
-            s = os.path.join(p, source)
-            if os.path.exists(s):
-                return s
+            s = glob.glob(os.path.join(p, "**", source))
+            if s:
+                return s[0]
         return None
 
 def get_name(tm: ToolkitModel, arch):
@@ -389,7 +385,7 @@ def do_load(source, precision):
             error = f"Cannot find {source}!"
         else:
             model, _ = load(filename)
-            fix_model(model, fix_clip=False)
+            fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
             loaded = do_analysis(model)
             loaded.filename = filename
     if loaded:
@@ -569,7 +565,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
     if not error:
         filename = find_source(import_drop)
         model, _ = load(filename)
-        fix_model(model, fix_clip=False)
+        fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
         found, _ = inspect_model(model, all=True)
         if not found or not model:
             error = "### ERROR: Imported model could not be identified!\n----"
@@ -687,6 +683,12 @@ def on_ui_tabs():
 
 
     return (checkpoint_toolkit, "Toolkit", "checkpoint_toolkit"),
+
+def on_ui_settings():
+    section = ('model-toolkit', "Model Toolkit")
+    shared.opts.add_option("model_toolkit_fix_clip", shared.OptionInfo(False, "Fix broken CLIP position IDs", section=section))
+
+script_callbacks.on_ui_settings(on_ui_settings)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
 
