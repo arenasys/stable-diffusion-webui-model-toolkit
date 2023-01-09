@@ -181,6 +181,49 @@ ARCHITECTURES = {
         "optional": OPTIONAL,
         "required": [],
         "prefixed": True
+    },
+    # standalone component architectures, for detecting broken models
+    "UNET-v1-BROKEN": {
+        "classes": ["UNET-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "UNET-v2-BROKEN": {
+        "classes": ["UNET-v2"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "UNET-v2-Depth-BROKEN": {
+        "classes": ["UNET-v2-Depth"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "VAE-v1-BROKEN": {
+        "classes": ["VAE-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "CLIP-v1-BROKEN": {
+        "classes": ["CLIP-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "CLIP-v2-BROKEN": {
+        "classes": ["CLIP-v2"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "Depth-v2-BROKEN": {
+        "classes": ["Depth-v2"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
     }
 }
 
@@ -295,6 +338,12 @@ def inspect_model(model, all=False):
             continue
 
         found[arch] = found_classes
+
+    # if we found a real architecture then dont show the broken ones
+    if any([not a.endswith("-BROKEN") for a in found]):
+        for a in list(found.keys()):
+            if a.endswith("-BROKEN"):
+                del found[a]
 
     if all:
         return found, rejected
