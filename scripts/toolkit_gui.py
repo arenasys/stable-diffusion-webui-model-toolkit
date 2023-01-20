@@ -7,10 +7,19 @@ import glob
 
 from toolkit import *
 
-ROOT_PATH = "models"
-MODEL_PATH = os.path.join(ROOT_PATH, "Stable-diffusion")
-COMPONENT_PATH = os.path.join(ROOT_PATH, "Components")
-VAE_PATH = os.path.join(ROOT_PATH, "VAE")
+MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-diffusion")
+COMPONENT_SAVE_PATH = os.path.join("models", "Components")
+VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
+
+LOAD_PATHS = [
+    os.path.join("models", "Stable-diffusion"),
+    os.path.join("models", "Components"),
+    os.path.join("models", "VAE"),
+]
+if shared.cmd_opts.ckpt_dir:
+    LOAD_PATHS += [shared.cmd_opts.ckpt_dir]
+if shared.cmd_opts.vae_dir:
+    LOAD_PATHS += [shared.cmd_opts.vae_dir]
 
 MODEL_EXT = [".ckpt", ".pt", ".safetensors"]
 COMPONENT_EXT = {
@@ -24,7 +33,7 @@ COMPONENT_EXT = {
     "Depth-v2": ".depth.pt"
 }
 
-os.makedirs(COMPONENT_PATH, exist_ok=True)
+os.makedirs(COMPONENT_SAVE_PATH, exist_ok=True)
 
 class ToolkitModel():
     def __init__(self):
@@ -281,6 +290,7 @@ def do_adv_report(details: ToolkitModel, abbreviate=True):
     return report
 
 source_list = []
+name_list = []
 file_list = []
 loaded = None
 
@@ -288,34 +298,25 @@ def get_models(dir):
     ext = ["**" + os.sep + "*" + e for e in MODEL_EXT]
     files = []
     for e in ext:
-        files += glob.glob(dir + os.sep + e, recursive=True)
+        for file in glob.glob(dir + os.sep + e, recursive=True):
+            files += [os.path.abspath(file)]
     return files
 
 def get_lists():
-    global source_list, file_list
-    file_list = get_models(COMPONENT_PATH)
-    file_list += get_models(MODEL_PATH)
-    file_list += get_models(VAE_PATH)
+    global source_list, file_list, name_list
+    file_list = []
+    for path in LOAD_PATHS:
+        file_list += get_models(path)
+    file_list = list(set(file_list))
 
-    unique_list = []
-    dup_list = []
-    for a in file_list:
-        collision = False
-        for b in file_list:
-            if a != b and a[a.rfind(os.sep):] == b[b.rfind(os.sep):]:
-                collision = True
-                break
-        if collision:
-            dup_list += [a]
-        else:
-            unique_list += [a]
-    unique_list = sorted([f[f.rfind(os.sep)+1:] for f in unique_list])
+    name_list = [p[p.rfind(os.sep)+1:] for p in file_list]
+    name_list = [n if name_list.count(n) == 1 else file_list[i] for i, n in enumerate(name_list)]
 
-    dup_list = sorted([f[len(ROOT_PATH)+1:] for f in dup_list])
+    file_list = sorted(file_list, key=lambda x: name_list[file_list.index(x)].lower())
+    name_list = sorted(name_list, key=lambda x: x.lower())
 
-    file_list = unique_list + dup_list
+    source_list = name_list + [""]
 
-    source_list = [] + file_list + [""]
     for a in ARCHITECTURES:
         if a.startswith("SD"):
             source_list += ["NEW " + a]
@@ -323,19 +324,12 @@ def get_lists():
 def find_source(source):
     if not source:
         return None
-    if os.sep in source:
-        s = os.path.join(ROOT_PATH, source)
-        if os.path.exists(s):
-            return s
-        else:
-            return None
-    else:
-        paths = [MODEL_PATH, VAE_PATH, COMPONENT_PATH]
-        for p in paths:
-            s = glob.glob(os.path.join(p, "**", "*" + source), recursive=True)
-            if s:
-                return s[0]
+    index = source_list.index(source)
+    if index >= len(file_list):
         return None
+    if not os.path.exists(file_list[index]):
+        return None
+    return file_list[index]
 
 def get_name(tm: ToolkitModel, arch):
     name = "model"
@@ -467,7 +461,7 @@ def do_clear():
 
 def do_refresh():
     get_lists()
-    return [gr.update(choices=source_list, value=source_list[0]), gr.update(choices=file_list, value=source_list[0])]
+    return [gr.update(choices=source_list, value=source_list[0]), gr.update(choices=name_list, value=name_list[0])]
 
 def do_report(precision):
     dont_half = "FP32" in precision
@@ -485,11 +479,11 @@ def do_save(save_name, precision):
     dont_half = "FP32" in precision
     keep_ema = False
 
-    folder = COMPONENT_PATH
+    folder = COMPONENT_SAVE_PATH
     if "SD" in loaded.a_type:
-        folder = MODEL_PATH
+        folder = MODEL_SAVE_PATH
     elif "VAE" in loaded.a_type:
-        folder = VAE_PATH
+        folder = VAE_SAVE_PATH
 
     filename = os.path.join(folder, save_name)
     model = copy.deepcopy(loaded.model)
@@ -544,9 +538,9 @@ def do_export(drop_arch, drop_class, drop_comp, export_name):
             if "EMA" in comp:
                 fix_ema(model)
 
-            folder = COMPONENT_PATH
+            folder = COMPONENT_SAVE_PATH
             if "VAE" in comp:
-                folder = VAE_PATH
+                folder = VAE_SAVE_PATH
 
             filename = os.path.join(folder, export_name)
             save(model, {}, filename)
@@ -654,7 +648,7 @@ def on_ui_tabs():
                     comp_dropdown = gr.Dropdown(label="Component", choices=[], interactive=True)
                 gr.HTML(value='<h1 class="gr-button-lg float-text">Action</h1><p class="float-text-p"><i>Replace or save the selected component.</i></p>')
                 with gr.Row():
-                    import_dropdown = gr.Dropdown(label="File", choices=file_list, value=file_list[0], interactive=True)
+                    import_dropdown = gr.Dropdown(label="File", choices=name_list, value=name_list[0], interactive=True)
                     import_button = gr.Button(elem_id="smallbutton", value='Import')
                     export_name = gr.Textbox(label="Name", interactive=True)
                     export_button = gr.Button(elem_id="smallbutton", value='Export')
