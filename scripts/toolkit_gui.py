@@ -299,8 +299,12 @@ def get_lists():
 
     unique_list = []
     dup_list = []
+    specified_list = []
     for a in file_list:
         collision = False
+        if not a.startswith(ROOT_PATH):
+            specified_list += [a]
+            continue
         for b in file_list:
             if a != b and a[a.rfind(os.sep):] == b[b.rfind(os.sep):]:
                 collision = True
@@ -313,7 +317,7 @@ def get_lists():
 
     dup_list = sorted([f[len(ROOT_PATH)+1:] for f in dup_list])
 
-    file_list = unique_list + dup_list
+    file_list = unique_list + dup_list + specified_list
 
     source_list = [] + file_list + [""]
     for a in ARCHITECTURES:
@@ -323,12 +327,13 @@ def get_lists():
 def find_source(source):
     if not source:
         return None
-    if os.sep in source:
+    if os.path.isabs(source):
+        s = source
+    elif os.sep in source:
         s = os.path.join(ROOT_PATH, source)
-        if os.path.exists(s):
-            return s
-        else:
-            return None
+
+    if s and os.path.exists(s):
+        return s
     else:
         paths = [MODEL_PATH, VAE_PATH, COMPONENT_PATH]
         for p in paths:
