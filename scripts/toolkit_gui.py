@@ -299,25 +299,38 @@ def get_lists():
 
     unique_list = []
     dup_list = []
-    specified_list = []
+    specified_model_dup_list = []
+    specified_vae_dup_list = []
     for a in file_list:
         collision = False
-        if not a.startswith(ROOT_PATH):
-            specified_list += [a]
-            continue
         for b in file_list:
-            if a != b and a[a.rfind(os.sep):] == b[b.rfind(os.sep):]:
+            if a != b and a[a.rfind(os.sep) :] == b[b.rfind(os.sep) :]:
                 collision = True
                 break
         if collision:
-            dup_list += [a]
+            if a.startswith(MODEL_PATH):
+                specified_model_dup_list += [a]
+            elif a.startswith(VAE_PATH):
+                specified_vae_dup_list += [a]
+            else:
+                dup_list += [a]
         else:
             unique_list += [a]
-    unique_list = sorted([f[f.rfind(os.sep)+1:] for f in unique_list])
 
-    dup_list = sorted([f[len(ROOT_PATH)+1:] for f in dup_list])
+    unique_list = sorted([f[f.rfind(os.sep) + 1 :] for f in unique_list])
 
-    file_list = unique_list + dup_list + specified_list
+    dup_list = sorted([f[len(ROOT_PATH) + 1 :] for f in dup_list])
+
+    specified_model_dup_list = sorted(
+        [f[len(os.path.dirname(MODEL_PATH)) + 1 :] for f in specified_model_dup_list]
+    )
+    specified_vae_dup_list = sorted(
+        [f[len(os.path.dirname(VAE_PATH)) + 1 :] for f in specified_vae_dup_list]
+    )
+
+    file_list = (
+        unique_list + dup_list + specified_model_dup_list + specified_vae_dup_list
+    )
 
     source_list = [] + file_list + [""]
     for a in ARCHITECTURES:
@@ -327,8 +340,12 @@ def get_lists():
 def find_source(source):
     if not source:
         return None
-    if os.path.isabs(source):
-        s = source
+
+    s = None
+    if source.startswith(os.path.basename(MODEL_PATH)):
+        s = os.path.join(os.path.dirname(MODEL_PATH), source)
+    elif source.startswith(os.path.basename(VAE_PATH)):
+        s = os.path.join(os.path.dirname(VAE_PATH), source)
     elif os.sep in source:
         s = os.path.join(ROOT_PATH, source)
 
