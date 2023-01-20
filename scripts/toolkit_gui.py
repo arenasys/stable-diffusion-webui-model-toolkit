@@ -8,9 +8,9 @@ import glob
 from toolkit import *
 
 ROOT_PATH = "models"
-MODEL_PATH = os.path.join(ROOT_PATH, "Stable-diffusion")
+MODEL_PATH = shared.cmd_opts.ckpt_dir or os.path.join(ROOT_PATH, "Stable-diffusion")
 COMPONENT_PATH = os.path.join(ROOT_PATH, "Components")
-VAE_PATH = os.path.join(ROOT_PATH, "VAE")
+VAE_PATH = shared.cmd_opts.vae_dir or os.path.join(ROOT_PATH, "VAE")
 
 MODEL_EXT = [".ckpt", ".pt", ".safetensors"]
 COMPONENT_EXT = {
