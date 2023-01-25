@@ -429,27 +429,34 @@ def fix_model(model, fix_clip=False):
         'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
         'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.'
     }
-    renamed = False
+    renamed = []
     for k in list(model.keys()):
         for r in nai_keys:
             if k.startswith(r):
-                renamed = True
                 kk = k.replace(r, nai_keys[r])
+                renamed += [(k,kk)]
                 model[kk] = model[k]
                 del model[k]
                 break
     
     # fix merging nonsense
     i = "cond_stage_model.transformer.text_model.embeddings.position_ids"
+    broken = []
     if i in model:
+        correct = torch.Tensor([list(range(77))]).to(torch.int64)
+        current = model[i].to(torch.int64)
+
+        broken = correct.ne(current)
+        broken = [i for i in range(77) if broken[0][i]]
+
         if fix_clip:
             # actually fix the ids
-            model[i] = torch.Tensor([list(range(77))]).to(torch.int64)
+            model[i] = correct
         else:
             # ensure fp16 looks the same as fp32
-            model[i] = model[i].to(torch.int64)
+            model[i] = current
 
-    return renamed
+    return renamed, broken
 
 def fix_ema(model):
     # turns UNET-v1-EMA into UNET-v1-SD

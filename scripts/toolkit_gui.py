@@ -43,6 +43,9 @@ class ToolkitModel():
 
         self.partial = False
 
+        self.broken = []
+        self.renamed = []
+
         self.a_found = {}
         self.a_rejected = {}
         self.a_resolved = {}
@@ -167,8 +170,10 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
     if d.z_full > 0:
         out += [f"Wastes **{get_size(d.z_full//2)}** on precision."]
 
-    if "CLIP-v1-NAI" in d.a_components:
-        out += ["**CLIP is mislablled.**"]
+    if d.renamed:
+        out += [f"**CLIP is mislablled, {len(d.renamed)} keys renamed.**"]
+    if d.broken:
+        out += [f"**CLIP has incorrect positions, missing:** {', '.join([str(i) for i in d.broken])}."]
     if "CLIP-v2-WD" in d.a_components:
         out += ["**CLIP is missing its final layer.**"]
 
@@ -381,8 +386,10 @@ def do_load(source, precision):
             error = f"Cannot find {source}!"
         else:
             model, _ = load(filename)
-            fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
+            renamed, broken = fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
             loaded = do_analysis(model)
+            loaded.renamed = renamed
+            loaded.broken = broken
             loaded.filename = filename
     if loaded:
         basic_report = do_basic_report(loaded, dont_half, keep_ema)
