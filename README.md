@@ -2,7 +2,8 @@
 
 A Multipurpose toolkit for managing, editing and creating models. 
 
-![](https://cdn.discordapp.com/attachments/973151736946622467/1067799899267158106/image.png)
+![](https://cdn.discordapp.com/attachments/973151736946622467/1067839983781679165/image.png)
+
 
 Install by: `Extenstions tab > Install from URL > Paste in this pages URL > Install`
 
@@ -41,6 +42,8 @@ Hard way, build the model from components:
 10. Change the model name to something appropriate like Anything-v3.0.safetensors
 11. Press Save.
 ```
+## Advanced
+The advanced tab lets you replace and extract model components, it also shows the detailed report. Import can extract components from full models, so if you want to replace the CLIP in your model with the SD 1.4 CLIP then you can simply specify the CLIP component and import the SD 1.4 checkpoint. The report will show all matched architectures, all rejected architectures (and reasons why they were rejected), and the list of all unknown keys. This is mostly useful for debuging models to see why they wont load.
 
 ## Notes
 Some things that may be useful to know when manipulating models.
