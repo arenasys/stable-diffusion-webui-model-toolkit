@@ -2,6 +2,8 @@
 
 A Multipurpose toolkit for managing, editing and creating models. 
 
+![](https://cdn.discordapp.com/attachments/973151736946622467/1067799899267158106/image.png)
+
 Install by: `Extenstions tab > Install from URL > Paste in this pages URL > Install`
 
 ## Features
