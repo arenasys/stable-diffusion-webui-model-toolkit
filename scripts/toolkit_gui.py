@@ -43,6 +43,7 @@ class ToolkitModel():
 
         self.partial = False
 
+        self.fix_clip = False
         self.broken = []
         self.renamed = []
 
@@ -171,9 +172,12 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
         out += [f"Wastes **{get_size(d.z_full//2)}** on precision."]
 
     if d.renamed:
-        out += [f"**CLIP is mislablled, {len(d.renamed)} keys renamed.**"]
+        out += [f"**CLIP was mislablled, {len(d.renamed)} keys renamed.**"]
     if d.broken:
-        out += [f"**CLIP has incorrect positions, missing:** {', '.join([str(i) for i in d.broken])}."]
+        if d.fix_clip:
+            out += [f"**CLIP had incorrect positions, fixed:** {', '.join([str(i) for i in d.broken])}."]
+        else:
+            out += [f"**CLIP has incorrect positions, missing:** {', '.join([str(i) for i in d.broken])}."]
     if "CLIP-v2-WD" in d.a_components:
         out += ["**CLIP is missing its final layer.**"]
 
@@ -202,10 +206,19 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
     if not dont_half:
         removed += d.z_full//2
 
-    if (d.z_full and not dont_half) or d.k_ema or d.k_junk:
-        report += f"Model can be pruned to **{get_size(d.z_total-removed)}**."
-    else:
-        report += f"**Model is clean, nothing to be done.**"
+    pruned = (d.z_full and not dont_half) or d.k_ema or d.k_junk
+    
+    changes = len(d.renamed)
+    if d.fix_clip:
+        changes += len(d.broken)
+    changed = changes > 0
+
+    if pruned:
+        report += f"Model will be pruned to **{get_size(d.z_total-removed)}**. "
+    if changed:
+        report += f"Model will be fixed (**{changes}** changes)."
+    if not changed and not pruned:
+        report += f"**Model is unaltered, nothing to be done.**"
 
     return report
 
@@ -390,6 +403,7 @@ def do_load(source, precision):
             loaded = do_analysis(model)
             loaded.renamed = renamed
             loaded.broken = broken
+            loaded.fix_clip = shared.opts.model_toolkit_fix_clip
             loaded.filename = filename
     if loaded:
         basic_report = do_basic_report(loaded, dont_half, keep_ema)
