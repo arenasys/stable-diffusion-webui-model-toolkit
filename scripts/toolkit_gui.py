@@ -4,6 +4,7 @@ import gradio as gr
 from modules import shared, script_callbacks
 import torch
 import glob
+import gc
 
 from toolkit import *
 
@@ -382,6 +383,7 @@ def do_load(source, precision):
     keep_ema = False
 
     loaded = None
+    gc.collect()
 
     if source.startswith("NEW "):
         loaded = ToolkitModel()
@@ -470,6 +472,7 @@ def do_select(drop_arch, drop_class, drop_comp):
 def do_clear():
     global loaded
     loaded = None
+    gc.collect()
     
     reports = [gr.update(value=""), gr.update(value="")]
     sources = [gr.update(), gr.update()]
@@ -631,6 +634,8 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
             loaded.a_resolved = old.a_resolved
             loaded.a_type = old.a_type
             loaded.a_potential = old.a_potential
+        old = None
+        gc.collect()
 
         # update reports and names
         result = do_report(precision)
