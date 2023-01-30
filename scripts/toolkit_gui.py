@@ -15,6 +15,7 @@ LOAD_PATHS = [
     os.path.join("models", "Stable-diffusion"),
     os.path.join("models", "Components"),
     os.path.join("models", "VAE"),
+    os.path.join("models", "Lora"),
 ]
 if shared.cmd_opts.ckpt_dir:
     LOAD_PATHS += [shared.cmd_opts.ckpt_dir]
@@ -74,7 +75,7 @@ def do_analysis(model):
 
     tm.a_found, tm.a_rejected = inspect_model(model, all=True)
     tm.a_resolved = resolve_arch(tm.a_found)
-    
+
     if not tm.a_resolved:
         tm.m_str = "----/----/----"
         return tm
@@ -90,7 +91,7 @@ def do_analysis(model):
     allowed = get_allowed_keys(tm.a_resolved)
 
     for k in model.keys():
-        kk = (k, tensor_shape(model[k]))
+        kk = (k, tensor_shape(k, model[k]))
         z = tensor_size(model[k])
         tm.z_total += z
 
@@ -226,7 +227,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
 def do_adv_report(details: ToolkitModel, abbreviate=True):
     d = details
     
-    model_keys = set((k, tensor_shape(d.model[k])) for k in d.model.keys())
+    model_keys = set((k, tensor_shape(k, d.model[k])) for k in d.model.keys())
     allowed_keys = get_allowed_keys(d.a_resolved)
     known_keys = get_allowed_keys(d.a_found)
 
@@ -236,7 +237,7 @@ def do_adv_report(details: ToolkitModel, abbreviate=True):
     model_size, useless_size, unknown_size = 0, 0, 0
 
     for k in d.model:
-        kk = (k, tensor_shape(d.model[k]))
+        kk = (k, tensor_shape(k, d.model[k]))
         z = tensor_size(d.model[k])
         model_size += z
         if kk in useless_keys:
@@ -618,8 +619,18 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
 
         # update analysis
         filename = loaded.filename
+
+        old = loaded
         loaded = do_analysis(loaded.model)
         loaded.filename = filename
+        loaded.broken = old.broken
+        loaded.renamed = old.renamed
+        loaded.fix_clip = old.fix_clip
+        if set(loaded.a_resolved.keys()) != set(old.a_resolved.keys()):
+            loaded.a_found = old.a_found
+            loaded.a_resolved = old.a_resolved
+            loaded.a_type = old.a_type
+            loaded.a_potential = old.a_potential
 
         # update reports and names
         result = do_report(precision)
@@ -641,6 +652,7 @@ def on_ui_tabs():
         .float-text { float: left; } .float-text-p { float: left; line-height: 2.5rem; } #mediumbutton { max-width: 32rem; } #smalldropdown { max-width: 2rem; } #smallbutton { max-width: 2rem; }
         #toolbutton { max-width: 8em; } #toolsettings > div > div { padding: 0; } #toolsettings { gap: 0.4em; } #toolsettings > div { border: none; background: none; gap: 0.5em; }
         #reportmd { padding: 1rem; } .dark #reportmd thead { color: #daddd8 } .gr-prose hr { margin-bottom: 0.5rem } #reportmd ul { margin-top: 0rem; margin-bottom: 0rem; } #reportmd li { margin-top: 0rem; margin-bottom: 0rem; }
+        .dark .gr-compact { margin-left: unset }
         #errormd { min-height: 0rem; text-align: center; } #errormd h3 { color: #ba0000; }
     """
     with gr.Blocks(css=css, analytics_enabled=False, variant="compact") as checkpoint_toolkit:

@@ -41,6 +41,16 @@ COMPONENTS = {
         "source": "UNET-v1-Inpainting.txt",
         "prefix": "model.diffusion_model."
     },
+    "UNET-v1-Pix2Pix": {
+        "keys": {},
+        "source": "UNET-v1-Pix2Pix.txt",
+        "prefix": "model.diffusion_model."
+    },
+    "UNET-v1-Pix2Pix-EMA": {
+        "keys": {},
+        "source": "UNET-v1-Pix2Pix-EMA.txt",
+        "prefix": "model_ema.diffusion_model"
+    },
     "UNET-v2-SD": {
         "keys": {},
         "source": "UNET-v2-SD.txt",
@@ -80,13 +90,39 @@ COMPONENTS = {
         "keys": {},
         "source": "Depth-v2-SD.txt",
         "prefix": "depth_model.model."
-    }
+    },
+    "LoRA-v1-CLIP": {
+        "keys": {},
+        "shapes": {},
+        "source": "LoRA-v1-CLIP.txt",
+        "prefix": ""
+    },
+    "LoRA-v1A-CLIP": {
+        "keys": {},
+        "shapes": {},
+        "source": "LoRA-v1A-CLIP.txt",
+        "prefix": ""
+    },
+    "LoRA-v1-UNET": {
+        "keys": {},
+        "shapes": {},
+        "source": "LoRA-v1-UNET.txt",
+        "prefix": ""
+    },
+    "LoRA-v1A-UNET": {
+        "keys": {},
+        "shapes": {},
+        "source": "LoRA-v1A-UNET.txt",
+        "prefix": ""
+    },
 }
 
 COMPONENT_CLASS = {
     "UNET-v1-SD": "UNET-v1",
     "UNET-v1-EMA": "EMA-UNET-v1",
     "UNET-v1-Inpainting": "UNET-v1",
+    "UNET-v1-Pix2Pix": "UNET-v1-Pix2Pix",
+    "UNET-v1-Pix2Pix-EMA": "EMA-UNET-v1-Pix2Pix",
     "UNET-v2-SD": "UNET-v2",
     "UNET-v2-Depth": "UNET-v2-Depth",
     "VAE-v1-SD": "VAE-v1",
@@ -94,7 +130,11 @@ COMPONENT_CLASS = {
     "CLIP-v1-NAI": "CLIP-v1",
     "CLIP-v2-SD": "CLIP-v2",
     "CLIP-v2-WD": "CLIP-v2",
-    "Depth-v2-SD": "Depth-v2"
+    "Depth-v2-SD": "Depth-v2",
+    "LoRA-v1-UNET": "LoRA-v1-UNET",
+    "LoRA-v1-CLIP": "LoRA-v1-CLIP",
+    "LoRA-v1A-UNET": "LoRA-v1-UNET",
+    "LoRA-v1A-CLIP": "LoRA-v1-CLIP",
 }
 
 OPTIONAL = [
@@ -114,10 +154,15 @@ OPTIONAL = [
     ("sqrt_recipm1_alphas_cumprod", (1000,))
 ]
 
-
 ARCHITECTURES = {
     "UNET-v1": {
         "classes": ["UNET-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": False
+    },
+    "UNET-v1-Pix2Pix": {
+        "classes": ["UNET-v1-Pix2Pix"],
         "optional": [],
         "required": [],
         "prefixed": False
@@ -164,6 +209,12 @@ ARCHITECTURES = {
         "required": [],
         "prefixed": True
     },
+    "SD-v1-Pix2Pix": {
+        "classes": ["UNET-v1-Pix2Pix", "VAE-v1", "CLIP-v1"],
+        "optional": OPTIONAL,
+        "required": [],
+        "prefixed": True
+    },
     "SD-v2": {
         "classes": ["UNET-v2", "VAE-v1", "CLIP-v2"],
         "optional": OPTIONAL,
@@ -182,9 +233,21 @@ ARCHITECTURES = {
         "required": [],
         "prefixed": True
     },
+    "EMA-v1-Pix2Pix": {
+        "classes": ["EMA-UNET-v1-Pix2Pix"],
+        "optional": OPTIONAL,
+        "required": [],
+        "prefixed": True
+    },
     # standalone component architectures, for detecting broken models
     "UNET-v1-BROKEN": {
         "classes": ["UNET-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "UNET-v1-Pix2Pix-BROKEN": {
+        "classes": ["UNET-v1-Pix2Pix"],
         "optional": [],
         "required": [],
         "prefixed": True
@@ -224,7 +287,25 @@ ARCHITECTURES = {
         "optional": [],
         "required": [],
         "prefixed": True
-    }
+    },
+    "LoRA-v1-UNET": {
+        "classes": ["LoRA-v1-UNET"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "LoRA-v1-CLIP": {
+        "classes": ["LoRA-v1-CLIP"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "LoRA-v1": {
+        "classes": ["LoRA-v1-CLIP", "LoRA-v1-UNET"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
 }
 
 def tensor_size(t):
@@ -232,9 +313,15 @@ def tensor_size(t):
         return t.nelement() * t.element_size()
     return 0
 
-def tensor_shape(data):
+def tensor_shape(key, data):
     if hasattr(data, 'shape'):
-        return tuple(data.shape)
+        shape = tuple(data.shape)
+        for c in ["LoRA-v1-UNET", "LoRA-v1-CLIP"]:
+            if key in COMPONENTS[c]['shapes']:
+                lora_shape = COMPONENTS[c]['shapes'][key]
+                if len(shape) == len(lora_shape):
+                    shape = tuple(a if b != -1 else b for a, b in zip(shape, lora_shape))
+        return shape
     return tuple()
 
 def load_components(path):
@@ -253,6 +340,8 @@ def load_components(path):
                 else:
                     z = tuple(int(i) for i in z)
                 COMPONENTS[c]["keys"].add((k,z))
+                if "shapes" in COMPONENTS[c]:
+                    COMPONENTS[c]["shapes"][k] = z
 
 def get_prefixed_keys(component):
     prefix = COMPONENTS[component]["prefix"]
@@ -273,14 +362,14 @@ class FakeTensor():
 def build_fake_model(model):
     fake_model = {}
     for k in model:
-        fake_model[k] = FakeTensor(tensor_shape(model[k]))
+        fake_model[k] = FakeTensor(tensor_shape(k, model[k]))
     return fake_model
 
 def inspect_model(model, all=False):
     # find all arch's and components in the model
     # also reasons for failing to find them
 
-    keys = set([(k, tensor_shape(model[k])) for k in model])
+    keys = set([(k, tensor_shape(k, model[k])) for k in model])
 
     rejected = {}
 
@@ -307,6 +396,8 @@ def inspect_model(model, all=False):
             clss = COMPONENT_CLASS[comp]
             classes[clss] = [comp] + classes.get(clss, [])
     
+    
+
     found = {} # arch -> {class -> [comp]}
     for arch in ARCHITECTURES:
         needs_prefix = ARCHITECTURES[arch]["prefixed"]
@@ -344,6 +435,16 @@ def inspect_model(model, all=False):
         for a in list(found.keys()):
             if a.endswith("-BROKEN"):
                 del found[a]
+    
+    for arch in list(found.keys()):
+        if "LoRA" in arch:
+            for clss in found[arch]:
+                if len(found[arch][clss]) == 2:
+                    found[arch][clss] = [found[arch][clss][0].replace("-v1-", "-v1A-")]
+    
+    if "LoRA-v1" in found:
+        del found["LoRA-v1-UNET"]
+        del found["LoRA-v1-CLIP"]
 
     if all:
         return found, rejected
@@ -392,7 +493,7 @@ def find_components(arch, component_class):
     return components
 
 def contains_component(model, component, prefixed = None):
-    model_keys = set([(k, tensor_shape(model[k])) for k in model])
+    model_keys = set([(k, tensor_shape(k, model[k])) for k in model])
 
     allowed = False
     if prefixed == None: #prefixed or unprefixed
@@ -472,6 +573,7 @@ def fix_ema(model):
         if kk in model:
             model[k] = model[kk]
             del model[kk]
+
 def compute_metric(model, arch=None):
     def tensor_metric(t):
         t = t.to(torch.float16).to(torch.float32)
@@ -480,7 +582,7 @@ def compute_metric(model, arch=None):
     if arch == None:
         arch = inspect_model(model)
 
-    unet_keys = get_allowed_keys(arch, ["UNET-v1", "UNET-v2", "UNET-v2-Depth"])
+    unet_keys = get_allowed_keys(arch, ["UNET-v1", "UNET-v1-Pix2Pix", "UNET-v2", "UNET-v2-Depth"])
     vae_keys = get_allowed_keys(arch, ["VAE-v1"])
     clip_keys = get_allowed_keys(arch, ["CLIP-v1", "CLIP-v2"])
 
@@ -489,7 +591,7 @@ def compute_metric(model, arch=None):
     is_clip_v1 = "CLIP-v1" in next(iter(arch.values()))
 
     for k in model:
-        kk = (k, tensor_shape(model[k]))
+        kk = (k, tensor_shape(k, model[k]))
 
         if kk in unet_keys:
             unet += tensor_metric(model[k])
@@ -562,7 +664,7 @@ def save(model, metadata, file):
 def prune_model(model, arch, keep_ema, dont_half):
     allowed = get_allowed_keys(arch)
     for k in list(model.keys()):
-        kk = (k, tensor_shape(model[k]))
+        kk = (k, tensor_shape(k, model[k]))
         keep = False
         if kk in allowed:
             keep = True
@@ -583,12 +685,13 @@ def extract_component(model, component, prefixed=None):
         allowed = allowed.union(get_prefixed_keys(component))
 
     for k in list(model.keys()):
-        z = tensor_shape(model[k])
+        z = tensor_shape(k, model[k])
         if (k, z) in allowed:
             if k.startswith(prefix):
                 kk = k.replace(prefix,"")
-                model[kk] = model[k]
-                del model[k]
+                if kk != k:
+                    model[kk] = model[k]
+                    del model[k]
         else:
             del model[k]
 
@@ -604,14 +707,14 @@ def replace_component(target, target_arch, source, source_component):
     is_prefixed = ARCHITECTURES[target_arch]["prefixed"]
 
     for k in list(source.keys()):
-        src_z = tensor_shape(source[k])
+        src_z = tensor_shape(k, source[k])
         src_k = k[len(prefix):] if k.startswith(prefix) else k
         dst_k = prefix + k if is_prefixed else k
         if (src_k, src_z) in component_keys:
             target[dst_k] = source[k]
 
 def delete_class(model, model_arch, component_class):
-    keys = set([(k, tensor_shape(model[k])) for k in model])
+    keys = set([(k, tensor_shape(k, model[k])) for k in model])
     prefixed = ARCHITECTURES[model_arch]["prefixed"]
 
     for name, component in COMPONENTS.items():
@@ -634,19 +737,9 @@ def log(model, file):
         f.write(out)
 
 if __name__ == '__main__':
-    import glob 
-    r = "/run/media/pul/ssd/stable-diffusion-webui/models/Stable-diffusion/**/*fumo-800.ckpt"
-
-    print(glob.glob(r, recursive=True))
-
-    exit()
-
-    a, _ = load(r)
-
-    print(list(a.keys()))
-
     load_components("components")
 
-    extract_component(a, "UNET-v1-EMA")
-
-    print(list(a.keys()))
+    for l in ["instruct-pix2pix-00-22000.safetensors"]:
+        a, _ = load(l)
+        for k in sorted(list(a.keys())):
+            print(k, tensor_shape(k, a[k]))
