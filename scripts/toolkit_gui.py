@@ -23,7 +23,7 @@ if shared.cmd_opts.ckpt_dir:
 if shared.cmd_opts.vae_dir:
     LOAD_PATHS += [shared.cmd_opts.vae_dir]
 
-MODEL_EXT = [".ckpt", ".pt", ".safetensors"]
+MODEL_EXT = [".ckpt", ".pt", ".pth", ".safetensors"]
 COMPONENT_EXT = {
     "UNET-v1": ".unet.pt", 
     "EMA-UNET-v1": ".unet.pt", 

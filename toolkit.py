@@ -115,6 +115,12 @@ COMPONENTS = {
         "source": "LoRA-v1A-UNET.txt",
         "prefix": ""
     },
+    "ControlNet-v1-SD": {
+        "keys": {},
+        "shapes": {},
+        "source": "ControlNet-v1-SD.txt",
+        "prefix": "control_model."
+    },
 }
 
 COMPONENT_CLASS = {
@@ -135,6 +141,7 @@ COMPONENT_CLASS = {
     "LoRA-v1-CLIP": "LoRA-v1-CLIP",
     "LoRA-v1A-UNET": "LoRA-v1-UNET",
     "LoRA-v1A-CLIP": "LoRA-v1-CLIP",
+    "ControlNet-v1-SD": "ControlNet-v1",
 }
 
 OPTIONAL = [
@@ -151,7 +158,8 @@ OPTIONAL = [
     ("sqrt_alphas_cumprod", (1000,)),
     ("sqrt_one_minus_alphas_cumprod", (1000,)),
     ("sqrt_recip_alphas_cumprod", (1000,)),
-    ("sqrt_recipm1_alphas_cumprod", (1000,))
+    ("sqrt_recipm1_alphas_cumprod", (1000,)),
+    ("logvar", (1000,)),
 ]
 
 ARCHITECTURES = {
@@ -203,6 +211,12 @@ ARCHITECTURES = {
         "required": [],
         "prefixed": False
     },
+    "ControlNet-v1": {
+        "classes": ["ControlNet-v1"],
+        "optional": [],
+        "required": [],
+        "prefixed": False
+    },
     "SD-v1": {
         "classes": ["UNET-v1", "VAE-v1", "CLIP-v1"],
         "optional": OPTIONAL,
@@ -211,6 +225,12 @@ ARCHITECTURES = {
     },
     "SD-v1-Pix2Pix": {
         "classes": ["UNET-v1-Pix2Pix", "VAE-v1", "CLIP-v1"],
+        "optional": OPTIONAL,
+        "required": [],
+        "prefixed": True
+    },
+    "SD-v1-ControlNet": {
+        "classes": ["UNET-v1", "VAE-v1", "CLIP-v1", "ControlNet-v1"],
         "optional": OPTIONAL,
         "required": [],
         "prefixed": True
@@ -284,6 +304,12 @@ ARCHITECTURES = {
     },
     "Depth-v2-BROKEN": {
         "classes": ["Depth-v2"],
+        "optional": [],
+        "required": [],
+        "prefixed": True
+    },
+    "ControlNet-v1-BROKEN": {
+        "classes": ["ControlNet-v1"],
         "optional": [],
         "required": [],
         "prefixed": True
