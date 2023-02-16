@@ -4,13 +4,17 @@ import gradio as gr
 from modules import shared, script_callbacks
 import torch
 import glob
-import gc
+from threading import Thread
+import time
 
 from toolkit import *
 
 MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-diffusion")
+AUTOPRUNE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Autoprune")
 COMPONENT_SAVE_PATH = os.path.join("models", "Components")
 VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
+
+os.makedirs(AUTOPRUNE_PATH, exist_ok=True)
 
 LOAD_PATHS = [
     os.path.join("models", "Stable-diffusion"),
@@ -383,7 +387,6 @@ def do_load(source, precision):
     keep_ema = False
 
     loaded = None
-    gc.collect()
 
     if source.startswith("NEW "):
         loaded = ToolkitModel()
@@ -472,7 +475,6 @@ def do_select(drop_arch, drop_class, drop_comp):
 def do_clear():
     global loaded
     loaded = None
-    gc.collect()
     
     reports = [gr.update(value=""), gr.update(value="")]
     sources = [gr.update(), gr.update()]
@@ -638,7 +640,6 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
             loaded.a_type = old.a_type
             loaded.a_potential = old.a_potential
         old = None
-        gc.collect()
 
         # update reports and names
         result = do_report(precision)
@@ -718,15 +719,61 @@ def on_ui_tabs():
         export_button.click(fn=do_export, inputs=drops+[export_name, prec_dropdown], outputs=drops + [export_name] + error)
         import_button.click(fn=do_import, inputs=drops+[import_dropdown, prec_dropdown], outputs=everything)
 
-
     return (checkpoint_toolkit, "Toolkit", "checkpoint_toolkit"),
 
 def on_ui_settings():
     section = ('model-toolkit', "Model Toolkit")
     shared.opts.add_option("model_toolkit_fix_clip", shared.OptionInfo(False, "Fix broken CLIP position IDs", section=section))
+    shared.opts.add_option("model_toolkit_autoprune", shared.OptionInfo(False, "Enable Autopruning", section=section))
+
+def autoprune(input_folder):
+    time.sleep(5)
+    for in_model in get_models(input_folder):
+        in_model = os.path.relpath(in_model, os.path.abspath("."))
+
+        print("PRUNING", in_model)
+        model, _ = load(in_model)
+        fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
+        found = inspect_model(model)
+        archs = ', '.join(found.keys())
+
+        print("\tDETECTED AS", archs)
+        if not found:
+            print("\tSKIPPING: UNKNOWN ARCHITECTURE")
+            continue
+        if "BROKEN" in archs:
+            print("\tSKIPPING: BROKEN ARCHITECTURE")
+            continue
+
+        prune_model(model, found, False, False)
+
+        ext = ".safetensors"
+        if "SD-" in archs:
+            output_folder = MODEL_SAVE_PATH
+        elif "VAE" in archs:
+            output_folder = VAE_SAVE_PATH
+            ext = ".pt"
+        else:
+            output_folder = COMPONENT_SAVE_PATH
+
+        out_model = os.path.join(output_folder, os.path.relpath(in_model, input_folder))
+        out_model = out_model.rsplit(".", 1)[0] + ext
+        out_file = out_model
+        i = 1
+        while os.path.exists(out_file):
+            out_file = out_model.replace(ext, f"({i}){ext}")
+            i += 1
+
+        print("\tMOVING TO", out_file)
+        os.remove(in_model)
+        save(model, {}, out_file)
 
 script_callbacks.on_ui_settings(on_ui_settings)
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
 
 load_components(os.path.join(sys.path[0], "components"))
+
+if shared.opts.model_toolkit_autoprune:
+    autoprune_thread = Thread(target=autoprune, args=[AUTOPRUNE_PATH])
+    autoprune_thread.start()

@@ -46,6 +46,9 @@ Hard way, build the model from components:
 ## Advanced
 The advanced tab lets you replace and extract model components, it also shows the detailed report. Import can extract components from full models, so if you want to replace the CLIP in your model with the SD 1.4 CLIP then you can simply specify the CLIP component and import the SD 1.4 checkpoint. The report will show all matched architectures, all rejected architectures (and reasons why they were rejected), and the list of all unknown keys. This is mostly useful for debuging models to see why they wont load.
 
+## Autopruning
+Toggle the `Enable Autopruning` option in settings. On startup of the WebUI everything in the `models/Autoprune` folder will be pruned into FP16 `.safetensor` models (except VAEs which will be `.pt`) and moved into their proper folders. Broken or unknown models will be skipped. Models will be renamed if there is a conflict when moving (`NAI.safetensors` to `NAI(1).safetensors`, etc). The `Reload UI` button will also trigger the Autopruning.
+
 ## Notes
 Some things that may be useful to know when manipulating models.
 
