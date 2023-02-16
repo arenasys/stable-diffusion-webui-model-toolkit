@@ -533,7 +533,8 @@ def do_save(save_name, precision):
     updates = reports + sources + drops + rows + names + error
     return updates
 
-def do_export(drop_arch, drop_class, drop_comp, export_name):
+def do_export(drop_arch, drop_class, drop_comp, export_name, precision):
+    dont_half = "FP32" in precision
     error = ""
 
     if not loaded or not loaded.model:
@@ -559,6 +560,8 @@ def do_export(drop_arch, drop_class, drop_comp, export_name):
             for k in model:
                 kk = prefix + k if prefixed else k
                 model[k] = loaded.model[kk]
+                if not dont_half and type(model[k]) == torch.Tensor and model[k].dtype == torch.float32:
+                    model[k] = model[k].half()
 
             if "EMA" in comp:
                 fix_ema(model)
@@ -712,7 +715,7 @@ def on_ui_tabs():
         comp_dropdown.change(fn=do_select, inputs=drops, outputs=drops + [export_name])
         save_button.click(fn=do_save, inputs=[save_name, prec_dropdown], outputs=everything)
 
-        export_button.click(fn=do_export, inputs=drops+[export_name], outputs=drops + [export_name] + error)
+        export_button.click(fn=do_export, inputs=drops+[export_name, prec_dropdown], outputs=drops + [export_name] + error)
         import_button.click(fn=do_import, inputs=drops+[import_dropdown, prec_dropdown], outputs=everything)
 
 
