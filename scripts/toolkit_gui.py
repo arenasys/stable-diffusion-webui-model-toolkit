@@ -10,9 +10,10 @@ import time
 from toolkit import *
 
 MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-diffusion")
-AUTOPRUNE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Autoprune")
-COMPONENT_SAVE_PATH = os.path.join("models", "Components")
-VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
+ROOT_PATH = os.path.dirname(MODEL_SAVE_PATH)
+AUTOPRUNE_PATH = os.path.join(ROOT_PATH, "Autoprune")
+COMPONENT_SAVE_PATH = os.path.join(ROOT_PATH, "Components")
+VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join(ROOT_PATH, "VAE")
 
 os.makedirs(AUTOPRUNE_PATH, exist_ok=True)
 
@@ -729,9 +730,9 @@ def on_ui_settings():
 def autoprune(input_folder):
     time.sleep(5)
     for in_model in get_models(input_folder):
-        in_model = os.path.relpath(in_model, os.path.abspath("."))
+        name = in_model.rsplit(os.path.sep, 1)[1].split(".", 1)[0]
 
-        print("PRUNING", in_model)
+        print("PRUNING", name)
         model, _ = load(in_model)
         fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
         found = inspect_model(model)
@@ -756,17 +757,19 @@ def autoprune(input_folder):
         else:
             output_folder = COMPONENT_SAVE_PATH
 
-        out_model = os.path.join(output_folder, os.path.relpath(in_model, input_folder))
-        out_model = out_model.rsplit(".", 1)[0] + ext
-        out_file = out_model
+        out_model = os.path.join(output_folder, f"{name}{ext}")
         i = 1
-        while os.path.exists(out_file):
-            out_file = out_model.replace(ext, f"({i}){ext}")
+        while os.path.exists(out_model):
+            out_model = os.path.join(output_folder, f"{name}({i}){ext}")
             i += 1
 
-        print("\tMOVING TO", out_file)
-        os.remove(in_model)
-        save(model, {}, out_file)
+        print("\tMOVING TO", out_model)
+        try:
+            os.remove(in_model)
+        except Exception:
+            pass
+        save(model, {}, out_model)
+        print("\tDONE")
 
 script_callbacks.on_ui_settings(on_ui_settings)
 
