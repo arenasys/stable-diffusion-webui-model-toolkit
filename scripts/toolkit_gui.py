@@ -13,7 +13,7 @@ MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-dif
 ROOT_PATH = os.path.dirname(MODEL_SAVE_PATH)
 AUTOPRUNE_PATH = os.path.join(ROOT_PATH, "Autoprune")
 COMPONENT_SAVE_PATH = os.path.join(ROOT_PATH, "Components")
-VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join(ROOT_PATH, "VAE")
+VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
 
 os.makedirs(AUTOPRUNE_PATH, exist_ok=True)
 
