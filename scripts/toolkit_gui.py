@@ -774,6 +774,6 @@ script_callbacks.on_ui_tabs(on_ui_tabs)
 
 load_components(os.path.join(sys.path[0], "components"))
 
-if shared.opts.model_toolkit_autoprune:
+if hasattr(shared.opts, "model_toolkit_autoprune") and shared.opts.model_toolkit_autoprune:
     autoprune_thread = Thread(target=autoprune, args=[AUTOPRUNE_PATH])
     autoprune_thread.start()
