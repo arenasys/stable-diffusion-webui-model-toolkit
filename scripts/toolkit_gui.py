@@ -6,12 +6,14 @@ import torch
 import glob
 from threading import Thread
 import time
+import shutil
 
 from toolkit import *
 
 MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-diffusion")
 ROOT_PATH = os.path.dirname(MODEL_SAVE_PATH)
 AUTOPRUNE_PATH = os.path.join(ROOT_PATH, "Autoprune")
+AUTOPRUNE_FAILED_PATH = os.path.join(AUTOPRUNE_PATH, "Failed")
 COMPONENT_SAVE_PATH = os.path.join(ROOT_PATH, "Components")
 VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
 
@@ -727,48 +729,87 @@ def on_ui_settings():
     shared.opts.add_option("model_toolkit_fix_clip", shared.OptionInfo(False, "Fix broken CLIP position IDs", section=section))
     shared.opts.add_option("model_toolkit_autoprune", shared.OptionInfo(False, "Enable Autopruning", section=section))
 
-def autoprune(input_folder):
-    time.sleep(5)
-    for in_model in get_models(input_folder):
-        name = in_model.rsplit(os.path.sep, 1)[1].split(".", 1)[0]
 
+def autoprune_move(in_file, out_folder):
+    name = in_file.rsplit(os.path.sep, 1)[1]
+    name, ext = name.split(".", 1)
+
+    out_file = os.path.join(out_folder, f"{name}.{ext}")
+    i = 1
+    while os.path.exists(out_file):
+        out_file = os.path.join(out_folder, f"{name}({i}).{ext}")
+        i += 1
+
+    os.makedirs(out_folder, exist_ok=True)
+    shutil.move(in_file, out_file)
+
+def autoprune_delete(in_file):
+    for _ in range(100):
+        try:
+            os.remove(in_file)
+        except Exception:
+            time.sleep(0.05)
+            continue
+        break
+    else:
+        print("\tCOULD NOT REMOVE")
+
+def autoprune_get_models(dir):
+    ext = ["*" + e for e in MODEL_EXT]
+    files = []
+    for e in ext:
+        for file in glob.glob(dir + os.sep + e):
+            files += [os.path.abspath(file)]
+    return files
+
+def autoprune(in_folder):
+    time.sleep(5)
+    for in_file in autoprune_get_models(in_folder):
+        name = in_file.rsplit(os.path.sep, 1)[1]
         print("PRUNING", name)
-        model, _ = load(in_model)
+        try:
+            model, _ = load(in_file)
+        except Exception:
+            print("\tFAILED: MODEL NOT INTACT")
+            continue
         fix_model(model, fix_clip=shared.opts.model_toolkit_fix_clip)
         found = inspect_model(model)
-        archs = ', '.join(found.keys())
 
-        print("\tDETECTED AS", archs)
         if not found:
-            print("\tSKIPPING: UNKNOWN ARCHITECTURE")
+            print("\tFAILED: UNKNOWN ARCHITECTURE")
+            print("\tMOVING TO Failed")
+            autoprune_move(in_file, AUTOPRUNE_FAILED_PATH)
             continue
-        if "BROKEN" in archs:
-            print("\tSKIPPING: BROKEN ARCHITECTURE")
+
+        arch = list(found.keys())[0]
+        print("\tDETECTED AS", arch)
+        if "BROKEN" in arch:
+            print("\tFAILED: BROKEN ARCHITECTURE")
+            print("\tMOVING TO Failed")
+            autoprune_move(in_file, AUTOPRUNE_FAILED_PATH)
             continue
 
         prune_model(model, found, False, False)
 
-        ext = ".safetensors"
-        if "SD-" in archs:
-            output_folder = MODEL_SAVE_PATH
-        elif "VAE" in archs:
-            output_folder = VAE_SAVE_PATH
-            ext = ".pt"
+        ext = "safetensors"
+        if arch.startswith("SD"):
+            out_folder = MODEL_SAVE_PATH
+        elif arch.startswith("VAE"):
+            out_folder = VAE_SAVE_PATH
+            ext = "pt"
         else:
-            output_folder = COMPONENT_SAVE_PATH
+            out_folder = COMPONENT_SAVE_PATH
 
-        out_model = os.path.join(output_folder, f"{name}{ext}")
+        name = name.split(".", 1)[0]
+        out_file = os.path.join(out_folder, f"{name}.{ext}")
         i = 1
-        while os.path.exists(out_model):
-            out_model = os.path.join(output_folder, f"{name}({i}){ext}")
+        while os.path.exists(out_file):
+            out_file = os.path.join(out_folder, f"{name}({i}).{ext}")
             i += 1
 
-        print("\tMOVING TO", out_model)
-        try:
-            os.remove(in_model)
-        except Exception:
-            pass
-        save(model, {}, out_model)
+        print("\tMOVING TO", out_file)
+        autoprune_delete(in_file)
+        save(model, {}, out_file)
         print("\tDONE")
 
 script_callbacks.on_ui_settings(on_ui_settings)
