@@ -49,6 +49,9 @@ The advanced tab lets you replace and extract model components, it also shows th
 ## Autopruning
 Toggle the `Enable Autopruning` option in settings. On startup of the WebUI everything in the `models/Autoprune` folder will be pruned into FP16 `.safetensor` models (except VAEs which will be `.pt`) and moved into their proper folders. Broken or unknown models will be skipped. Models will be renamed if there is a conflict when moving (`NAI.safetensors` to `NAI(1).safetensors`, etc). The `Reload UI` button will also trigger the Autopruning.
 
+## Metric
+During analysis a metric is computed which attempts to uniquely identify a models weights. The AnythingV3 model produced above has the metric: `(2020/2982/0130)`, which corresponds to `(UNET/VAE/CLIP)`. This toolkit knows the metrics for a few common components and will include any matches in its report. So for `(2020/2982/0130)` it knows the VAE metric of `2982` corresponds to the NAI VAE and will report `Uses the NAI VAE`. Actually many VAEs being distributed are just NAI VAE renamed, without a metric it would be difficult to know. Though this system isnt foolproof and incorrect matches can happen.
+
 ## Notes
 Some things that may be useful to know when manipulating models.
 
