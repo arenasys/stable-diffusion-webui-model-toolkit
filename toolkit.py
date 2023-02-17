@@ -663,9 +663,7 @@ def load(file):
     metadata = {}
 
     if file.endswith(".safetensors") or file.endswith(".st"):
-        with safetensors.safe_open(file, framework="pt", device="cpu") as f:
-            for key in f.keys():
-                model[key] = f.get_tensor(key)
+        model = safetensors.torch.load_file(file, device="cpu")
     else:
         model = torch.load(file, map_location="cpu")
         if not model:
