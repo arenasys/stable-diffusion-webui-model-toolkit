@@ -457,7 +457,7 @@ def inspect_model(model, all=False):
         found[arch] = found_classes
 
     # if we found a real architecture then dont show the broken ones
-    if any([not a.endswith("-BROKEN") for a in found]):
+    if any([a.startswith("SD-") for a in found]):
         for a in list(found.keys()):
             if a.endswith("-BROKEN"):
                 del found[a]

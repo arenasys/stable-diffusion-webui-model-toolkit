@@ -735,7 +735,7 @@ def on_ui_settings():
 
 def autoprune_move(in_file, out_folder):
     name = in_file.rsplit(os.path.sep, 1)[1]
-    name, ext = name.split(".", 1)
+    name, ext = name.rsplit(".", 1)
 
     out_file = os.path.join(out_folder, f"{name}.{ext}")
     i = 1
@@ -803,7 +803,7 @@ def autoprune(in_folder):
         else:
             out_folder = COMPONENT_SAVE_PATH
 
-        name = name.split(".", 1)[0]
+        name = name.rsplit(".", 1)[0]
         out_file = os.path.join(out_folder, f"{name}.{ext}")
         i = 1
         while os.path.exists(out_file):
