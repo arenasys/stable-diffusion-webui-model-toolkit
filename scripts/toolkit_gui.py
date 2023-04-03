@@ -1,29 +1,32 @@
-import os
-import sys
-import gradio as gr
-from modules import shared, script_callbacks
-import torch
 import glob
-from threading import Thread
-import time
+import os
 import shutil
+import sys
+import time
+
+from threading import Thread
+
+import gradio as gr
+import torch
+
+from modules import shared, script_callbacks
+from modules.paths import models_path
 
 from toolkit import *
 
-MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join("models", "Stable-diffusion")
-ROOT_PATH = os.path.dirname(MODEL_SAVE_PATH)
-AUTOPRUNE_PATH = os.path.join(ROOT_PATH, "Autoprune")
+MODEL_SAVE_PATH = shared.cmd_opts.ckpt_dir or os.path.join(models_path, "Stable-diffusion")
+AUTOPRUNE_PATH = os.path.join(models_path, "Autoprune")
 AUTOPRUNE_FAILED_PATH = os.path.join(AUTOPRUNE_PATH, "Failed")
-COMPONENT_SAVE_PATH = os.path.join(ROOT_PATH, "Components")
-VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join("models", "VAE")
+COMPONENT_SAVE_PATH = os.path.join(models_path, "Components")
+VAE_SAVE_PATH = shared.cmd_opts.vae_dir or os.path.join(models_path, "VAE")
 
 os.makedirs(AUTOPRUNE_PATH, exist_ok=True)
 
 LOAD_PATHS = [
-    os.path.join("models", "Stable-diffusion"),
-    os.path.join("models", "Components"),
-    os.path.join("models", "VAE"),
-    os.path.join("models", "Lora"),
+    os.path.join(models_path, "Stable-diffusion"),
+    os.path.join(models_path, "Components"),
+    os.path.join(models_path, "VAE"),
+    os.path.join(models_path, "Lora"),
 ]
 if shared.cmd_opts.ckpt_dir:
     LOAD_PATHS += [shared.cmd_opts.ckpt_dir]
