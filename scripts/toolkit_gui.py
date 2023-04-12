@@ -35,13 +35,13 @@ if shared.cmd_opts.vae_dir:
 
 MODEL_EXT = [".ckpt", ".pt", ".pth", ".safetensors"]
 COMPONENT_EXT = {
-    "UNET-v1": ".unet.pt", 
-    "EMA-UNET-v1": ".unet.pt", 
-    "UNET-v2": ".unet-v2.pt", 
-    "UNET-v2-Depth": ".unet-v2-d.pt", 
-    "VAE-v1": ".vae.pt", 
-    "CLIP-v1": ".clip.pt", 
-    "CLIP-v2": ".clip-v2.pt", 
+    "UNET-v1": ".unet.pt",
+    "EMA-UNET-v1": ".unet.pt",
+    "UNET-v2": ".unet-v2.pt",
+    "UNET-v2-Depth": ".unet-v2-d.pt",
+    "VAE-v1": ".vae.pt",
+    "CLIP-v1": ".clip.pt",
+    "CLIP-v2": ".clip-v2.pt",
     "Depth-v2": ".depth.pt"
 }
 
@@ -71,7 +71,7 @@ class ToolkitModel():
         self.m_unet = None
         self.m_vae = None
         self.m_clip = None
-    
+
         self.z_total = 0
         self.z_full = 0
         self.z_junk = 0
@@ -95,7 +95,7 @@ def do_analysis(model):
     tm.a_type = next(iter(tm.a_resolved))
     tm.a_classes = tm.a_resolved[tm.a_type]
     tm.a_components = [tm.a_classes[c][0] for c in tm.a_classes]
-    
+
     tm.m_str, m = compute_metric(model, tm.a_resolved)
     tm.m_unet, tm.m_vae, tm.m_clip = m
 
@@ -116,7 +116,7 @@ def do_analysis(model):
             else:
                 tm.z_junk += z
                 tm.k_junk += [k]
-    
+
     return tm
 
 def get_size(bytes):
@@ -153,7 +153,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
         out += [f"Model components are: **{', '.join(d.a_components)}**."]
     else:
         out += [f"**Model has no components**."]
-    
+
     report += " ".join(out) + "\n\n"
     out = []
 
@@ -162,7 +162,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
     if not keep_ema:
         k_junk += d.k_ema
         z_junk += d.z_ema
-    
+
     if k_junk:
         if z_junk > 16777216:
             out += [f"**Contains {get_size(z_junk)} of junk data!**"]
@@ -179,7 +179,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
                 out += [f"**Contains {len(d.k_ema)} EMA keys!**"]
         else:
             out += [f"Contains no EMA data."]
-    
+
     if d.z_full > 0:
         out += [f"Wastes **{get_size(d.z_full//2)}** on precision."]
 
@@ -219,7 +219,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
         removed += d.z_full//2
 
     pruned = (d.z_full and not dont_half) or d.k_ema or d.k_junk
-    
+
     changes = len(d.renamed)
     if d.fix_clip:
         changes += len(d.broken)
@@ -237,7 +237,7 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
 
 def do_adv_report(details: ToolkitModel, abbreviate=True):
     d = details
-    
+
     model_keys = set((k, tensor_shape(k, d.model[k])) for k in d.model.keys())
     allowed_keys = get_allowed_keys(d.a_resolved)
     known_keys = get_allowed_keys(d.a_found)
@@ -275,7 +275,7 @@ def do_adv_report(details: ToolkitModel, abbreviate=True):
             data = d.a_found[arch]
             if arch == d.a_type and abbreviate:
                 data = d.a_resolved[arch]
-                
+
             for clss in data:
                 report += f"  - **{clss}**\n"
                 for comp in data[clss]:
@@ -364,8 +364,8 @@ def find_source(source):
 def get_name(tm: ToolkitModel, arch):
     name = "model"
     if tm.filename:
-        name = os.path.basename(tm.filename).split(".")[0]
-    
+        name = os.path.basename(tm.filename).rsplit(".", 1)[0]
+
     if tm.m_str:
         if "SD" in arch:
             name += "-" + tm.m_str.replace("/","-")
@@ -383,10 +383,10 @@ def get_name(tm: ToolkitModel, arch):
     else:
         name += ".safetensors"
     return name
-    
+
 def do_load(source, precision):
     global loaded
-    
+
     basic_report, adv_report, save_name, error = "", "", "", ""
 
     dont_half = "FP32" in precision
@@ -462,7 +462,7 @@ def do_select(drop_arch, drop_class, drop_comp):
         drop_class = class_list[0]
 
     comps = arch[drop_class]
-    
+
     comp_list = ["auto"] + sorted(comps)
     if not drop_comp in comp_list:
         drop_comp = comp_list[0]
@@ -481,7 +481,7 @@ def do_select(drop_arch, drop_class, drop_comp):
 def do_clear():
     global loaded
     loaded = None
-    
+
     reports = [gr.update(value=""), gr.update(value="")]
     sources = [gr.update(), gr.update()]
     drops = [gr.update(choices=[], value="") for _ in range(3)]
@@ -564,7 +564,7 @@ def do_export(drop_arch, drop_class, drop_comp, export_name, precision):
             prefix = COMPONENTS[comp]["prefix"]
 
             extract_component(model, comp, prefixed)
-            
+
             for k in model:
                 kk = prefix + k if prefixed else k
                 model[k] = loaded.model[kk]
@@ -583,7 +583,7 @@ def do_export(drop_arch, drop_class, drop_comp, export_name, precision):
         else:
             error = f"### ERROR: Model doesnt contain a {drop_class}!\n----"
             pass
-    
+
     updates = [gr.update() for _ in range(4)] + [gr.update(value=error), gr.update(visible=not not error)]
     return updates
 
@@ -593,7 +593,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
 
     if not loaded or not import_drop:
         error = "### ERROR: No model is loaded!\n----"
-    
+
     if not error:
         filename = find_source(import_drop)
         model, _ = load(filename)
@@ -601,7 +601,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
         found, _ = inspect_model(model, all=True)
         if not found or not model:
             error = "### ERROR: Imported model could not be identified!\n----"
-        
+
     choosen = ""
     if not error:
         # find all the components in the class
@@ -619,7 +619,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
                     error = f"### ERROR: Imported model does not contain a {drop_comp}!\n----"
                 else:
                     choosen = drop_comp
-    
+
     reports = [gr.update(), gr.update()]
     names = [gr.update(), gr.update()]
 
@@ -652,7 +652,7 @@ def do_import(drop_arch, drop_class, drop_comp, import_drop, precision):
         reports = [result[0], result[1]]
         names[0] = result[2]
         names[1] = get_name(loaded, drop_class)
-    
+
     sources = [gr.update(), gr.update()]
     drops = [gr.update() for _ in range(3)]
     rows = [gr.update(), gr.update()]
