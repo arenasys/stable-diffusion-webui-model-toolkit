@@ -56,6 +56,11 @@ COMPONENTS = {
         "source": "UNET-v2-SD.txt",
         "prefix": "model.diffusion_model."
     },
+    "UNET-v2-Inpainting": {
+        "keys": {},
+        "source": "UNET-v2-Inpainting.txt",
+        "prefix": "model.diffusion_model."
+    },
     "UNET-v2-Depth": {
         "keys": {},
         "source": "UNET-v2-Depth.txt",
@@ -130,6 +135,7 @@ COMPONENT_CLASS = {
     "UNET-v1-Pix2Pix": "UNET-v1-Pix2Pix",
     "UNET-v1-Pix2Pix-EMA": "EMA-UNET-v1-Pix2Pix",
     "UNET-v2-SD": "UNET-v2",
+    "UNET-v2-Inpainting": "UNET-v2",
     "UNET-v2-Depth": "UNET-v2-Depth",
     "VAE-v1-SD": "VAE-v1",
     "CLIP-v1-SD": "CLIP-v1",
