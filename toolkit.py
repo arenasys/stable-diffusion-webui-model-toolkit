@@ -559,7 +559,7 @@ def fix_model(model, fix_clip=False):
     renamed = []
     for k in list(model.keys()):
         for r in nai_keys:
-            if k.startswith(r):
+            if type(k) == str and k.startswith(r):
                 kk = k.replace(r, nai_keys[r])
                 renamed += [(k,kk)]
                 model[kk] = model[k]
