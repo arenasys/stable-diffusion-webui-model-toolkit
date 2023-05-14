@@ -514,7 +514,12 @@ def resolve_arch(arch):
             arch[a][clss] = resolve_class(arch[a][clss])
             if arch[a][clss]:
                 arch_sizes[a] += len(COMPONENTS[arch[a][clss][0]]["keys"])
-    choosen = max(arch_sizes, key=arch_sizes.get)
+    for normal in ["SD-v1", "SD-v2"]:
+        if normal in arch_sizes:
+            choosen = normal
+            break
+    else:
+        choosen = max(arch_sizes, key=arch_sizes.get)
     return {choosen: arch[choosen]}
 
 def find_components(arch, component_class):
@@ -703,8 +708,11 @@ def prune_model(model, arch, keep_ema, dont_half):
         if not keep:
             del model[k]
             continue
-        if not dont_half and type(model[k]) == torch.Tensor and model[k].dtype == torch.float32:
-            model[k] = model[k].half()
+        if type(model[k]) == torch.Tensor:
+            if dont_half and model[k].dtype in {torch.float16, torch.float64, torch.bfloat16}:
+                model[k] = model[k].to(torch.float32)
+            if not dont_half and model[k].dtype in {torch.float32, torch.float64, torch.bfloat16}:
+                model[k] = model[k].to(torch.float16)
 
 def extract_component(model, component, prefixed=None):
     prefix = COMPONENTS[component]["prefix"]

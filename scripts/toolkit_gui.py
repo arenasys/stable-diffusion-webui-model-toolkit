@@ -73,7 +73,7 @@ class ToolkitModel():
         self.m_clip = None
 
         self.z_total = 0
-        self.z_full = 0
+        self.z_waste = 0
         self.z_junk = 0
         self.z_ema = 0
 
@@ -108,7 +108,9 @@ def do_analysis(model):
 
         if kk in allowed:
             if z and model[k].dtype == torch.float32:
-                tm.z_full += z
+                tm.z_waste += z/2
+            if z and model[k].dtype == torch.float64:
+                tm.z_waste += z - (z/4)
         else:
             if k.startswith(EMA_PREFIX):
                 tm.z_ema += z
@@ -180,8 +182,8 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
         else:
             out += [f"Contains no EMA data."]
 
-    if d.z_full > 0:
-        out += [f"Wastes **{get_size(d.z_full//2)}** on precision."]
+    if d.z_waste > 0:
+        out += [f"Wastes **{get_size(d.z_waste)}** on precision."]
 
     if d.renamed:
         out += [f"**CLIP was mislablled, {len(d.renamed)} keys renamed.**"]
@@ -216,9 +218,9 @@ def do_basic_report(details: ToolkitModel, dont_half, keep_ema):
     if not keep_ema:
         removed += d.z_ema
     if not dont_half:
-        removed += d.z_full//2
+        removed += d.z_waste
 
-    pruned = (d.z_full and not dont_half) or d.k_ema or d.k_junk
+    pruned = (d.z_waste and not dont_half) or d.k_ema or d.k_junk
 
     changes = len(d.renamed)
     if d.fix_clip:
