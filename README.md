@@ -76,7 +76,7 @@ The EMA data is itself an independant and functional UNET. You can export the `U
 ![](https://cdn.discordapp.com/attachments/973151736946622467/1060767681692827718/ema.png)
 
 ### CLIP
-During merging a CLIP key called `embeddings.position_ids` is sometimes broken. This is an int64 tensor that has the values from 0 to 76, merging will convert these to float and introduce errors. For example in AnythingV3 the value `76` has become `75.9975`, which is cast back to int64 when loaded by the webui, resulting in `75`. The option `Fix broken CLIP position IDs` (in settings) will fix this tensor, this is off by default because it which changes the model output slightly. Fixed vs Broken.
+During merging a CLIP key called `embeddings.position_ids` is sometimes broken. This is an int64 tensor that has the values from 0 to 76, merging will convert these to float and introduce errors. For example in AnythingV3 the value `76` has become `75.9975`, which is cast back to int64 when loaded by the webui, resulting in `75`. The option `Fix broken CLIP position IDs` (in settings) will fix this tensor, this is off by default because it changes the model output slightly. Fixed vs Broken.
 ![](https://cdn.discordapp.com/attachments/973151736946622467/1060777823624765470/clip_fix.png)
 
 ### VAE
