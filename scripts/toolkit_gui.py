@@ -300,7 +300,8 @@ def do_adv_report(details: ToolkitModel, abbreviate=True):
                     data = data[:5]
                 for k in data:
                     if type(k) == tuple:
-                        report += f"  - {k[0]} {k[1]}\n"
+                        size = str(list(k[1])).replace(" ", "")
+                        report += f"  - {k[0]} {size}\n"
                     else:
                         report += f"  - {k}\n"
                 if will_abbreviate:
@@ -315,7 +316,8 @@ def do_adv_report(details: ToolkitModel, abbreviate=True):
         if will_abbreviate:
             data = data[5:]
         for k, z in data:
-            report += f" - {k} {z}\n"
+            size = str(list(z)).replace(" ", "")
+            report += f" - {k} {size}\n"
         if will_abbreviate:
             report += f" - ...\n"
 
