@@ -14,6 +14,12 @@ Install by: `Extenstions tab > Install from URL > Paste in this pages URL > Inst
 - Converting to/from safetensors.
 - Extracting/replacing model components.
 - Identifying/debugging model architectures.
+- Creating custom models from components.
+
+## Planned additions
+- Complete LoRA,LyCORIS,DyLoRA..etc component support
+- Settings options for level of pruning
+- Key restoration options for repairing badly saved models
 
 # Example
 Many models being distributed are quite bloated, most of their size being redundant or useless data.
