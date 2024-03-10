@@ -1,4 +1,6 @@
-# stable-diffusion-model-toolkit
+- ![WiP](assets/banner.png) 
+
+This is a continuation of the Stable Diffusion webui extension [stable-diffusion-webui-model-toolkit](https://github.com/arenasys/stable-diffusion-webui-model-toolkit)
 
 A Multipurpose toolkit for managing, editing and creating models. 
 
