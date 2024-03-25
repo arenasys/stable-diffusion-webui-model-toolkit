@@ -2,7 +2,7 @@
 
 A Multipurpose toolkit for managing, editing and creating models. 
 
-![](https://cdn.discordapp.com/attachments/973151736946622467/1067839983781679165/image.png)
+![toolkit](https://github.com/arenasys/stable-diffusion-webui-model-toolkit/assets/79061310/0c4c5aea-1ac7-45eb-8c6e-94a8f8f0a181)
 
 
 Install by: `Extenstions tab > Install from URL > Paste in this pages URL > Install`
